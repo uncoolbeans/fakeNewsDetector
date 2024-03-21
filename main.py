@@ -7,6 +7,11 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 import string
+from bs4 import BeautifulSoup
+from urllib.request import urlopen
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 
@@ -60,13 +65,54 @@ def preProcess(text): #make the text suitable for the machine to read, eliminate
 #
     return text
 
-print('preprocessing.....')
-    
-data['text'] = data['text'].apply(preProcess)
 
-print(data['text'])
+def scrape(link):
+    url = link
+    page = urlopen(url)
+    html = page.read().decode("utf-8")
+    soup = BeautifulSoup(html, "html.parser")
+
+    return soup.get_text()
+
+
+#print('preprocessing.....')
+    
+#data['text'] = data['text'].apply(preProcess)
+
+#print(data['text'])
 
 x = data['text']
 y = data['label']
+
+def trainModel(x,y):
+    x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) #creates training and test sets from dataset
+    vectorizer = TfidfVectorizer()
+    xvTrain = vectorizer.fit_transform(x_train)
+    xvTest = vectorizer.transform(x_test)
+
+    #creating an instance of the model and training it using dataset
+    LRModel = LogisticRegression()
+    LRModel.fit(xvTrain,y_train) 
+
+    #assessing the model
+    prediction = LRModel.predict(xvTest)
+    accuracy = accuracy_score(y_test, prediction)
+    precision = precision_score(y_test, prediction)
+    recall = recall_score(y_test, prediction)
+    f1 = f1_score(y_test, prediction)
+
+    print('Accuracy:', accuracy)
+    print('Precision:', precision)
+    print('Recall:', recall)
+    print('F1 Score:', f1)
+
+
+
+
+trainModel(x,y)
+
+#print(scrape('https://www.smh.com.au/national/at-28-jason-struggles-to-breathe-and-doesn-t-know-what-s-next-20190530-p51sva.html'))
+
+
 
 
