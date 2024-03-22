@@ -5,10 +5,10 @@ Libraries and modules used:
 - BeautifulSoup4 HTML Parseer - https://beautiful-soup-4.readthedocs.io/en/latest/
 - urlib Python URL Handler - https://docs.python.org/3/library/urllib.html
 - CustomTkinter GUI - https://customtkinter.tomschimansky.com/documentation/windows/
-- pandas
-- numpy
+- pandas 2.2.1 - https://pandas.pydata.org/docs/
+- numpy 1.26 - https://numpy.org/doc/
 
-Please ensure that these libraries are pre-installed before running the program. Run the follwing code in the terminal:
+Please ensure that these libraries are pre-installed before running the program. Run the follwing code in the terminal (Windows):
 ```
 pip install pandas
 pip install numpy
