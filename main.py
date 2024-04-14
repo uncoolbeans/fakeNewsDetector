@@ -163,6 +163,10 @@ class modelTabView(ctk.CTkTabview):
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
         self.semiBold = ctk.CTkFont(family='SF-Pro', size = 22, weight='bold')
 
+        self.model1Trained = False
+        self.model2Trained = False
+        self.model3Trained = False
+
         self.add('Model 1')
         self.add('Model 2')
         self.add('Model 3')
@@ -171,23 +175,30 @@ class modelTabView(ctk.CTkTabview):
         def trainSelectedModel(x,y,model,tabNo):
 
             if tabNo == 1:
-                self.model1StatusLabel.configure(text = 'training model')
+                self.model1StatusLabel.configure(text = 'Training model, please wait...')
                 self.trainModel1Button.configure(state = 'disabled')
             elif tabNo == 2:
                 pass #add code here when other 2 tabs are functional
             elif tabNo == 3:
                 pass
-
-            model.trainModel(x,y)
-            i = 1
-            for metric in model.metrics:
-                self.metricLabel = ctk.CTkLabel(self.tab(f'Model {tabNo}'),
-                                            text = f'{metric}: {model.metrics[metric]}')
-                self.metricLabel.grid(column = 1, row = i)
-                i+=1
+            
+            #train model
+            model.trainModel(x,y) 
 
             if tabNo == 1:
-                self.model1StatusLabel.configure(text = 'model trained')
+                self.model1StatusLabel.after(10,self.model1StatusLabel.destroy())
+                i = 1
+                for metric in model.metrics:
+                    self.metricLabel = ctk.CTkLabel(self.metricsFrame1,
+                                            text = f'{metric}: {model.metrics[metric]}',
+                                            fg_color= 'lightgray',
+                                            corner_radius=5,
+                                            height = 35,
+                                            width = 250,
+                                            )
+                    self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
+                    i+=1
+                self.model1Trained = True
             elif tabNo == 2:
                 pass
             elif tabNo == 3:
@@ -197,20 +208,44 @@ class modelTabView(ctk.CTkTabview):
         self.model1NameLabel = ctk.CTkLabel(self.tab('Model 1'),
                                             text = 'Logistic Regression',
                                             font = self.semiBold)
-        self.model1NameLabel.grid(column = 0, row = 0, columnspan = 3, pady = 5, padx = 5)
+        self.model1NameLabel.grid(column = 0, row = 0, columnspan = 3, pady = 5, padx = 5, sticky = 'w')
 
-        self.model1StatusLabel = ctk.CTkLabel(self.tab('Model 1'),
-                                             text = 'Model not trained',
-                                             font = self.normalFont
+        self.metricsFrame1 = ctk.CTkFrame(self.tab('Model 1'),width=250, height = 190)
+        self.metricsFrame1.grid(row = 1, column = 0, padx = 5, pady = 5, rowspan = 2)
+
+        self.metricsLabel1 = ctk.CTkLabel(self.metricsFrame1,
+                                          text = 'Model Metrics',
+                                          font = self.normalFont
+                                          )
+        self.metricsLabel1.grid(row = 0, column = 0, sticky = 'w',padx = 5)
+
+        self.model1StatusLabel = ctk.CTkLabel(self.metricsFrame1,
+                                             text = 'Model not trained.\nPress [Train Model] to begin training.',
+                                             font = self.normalFont,
+                                             width=250, height = 150
                                              )
         self.model1StatusLabel.grid(column = 0, row = 1, pady = 5, padx = 5)
 
         self.trainModel1Button = ctk.CTkButton(self.tab('Model 1'),
-                                    text = 'train model', 
+                                    text = 'Train Model', 
                                     command = lambda: threading.Thread(target=trainSelectedModel,args=(x,y,self.logisticModel,1)).start()
                                     )
+        self.trainModel1Button.grid(column = 0, row = 3, padx = 5, pady = 5)
+
+        self.URLbox1 = ctk.CTkEntry(self.tab('Model 1'),
+                                    placeholder_text='Paste URL here',
+                                    width=250
+                                    )
+        self.URLbox1.grid(row = 0, column = 1, padx = 5)
+
+        self.textbox1 = ctk.CTkTextbox(self.tab('Model 1'),
+                                       width=250,
+                                       height = 175)
+        self.textbox1.insert('0.0', 'Paste body text of article here. (delete this text when pasting)')
+        self.textbox1.grid(row = 1, column = 1)
+
         
-        self.trainModel1Button.grid(column = 0, row = 2, padx = 10, pady = 10)
+        #Tab 2 ->
 
 
 
