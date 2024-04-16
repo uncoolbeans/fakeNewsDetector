@@ -127,6 +127,26 @@ def vectoriseData():
     xvTrain = vectorizer.fit_transform(x_train)
     xvTest = vectorizer.transform(x_test)
 
+class timerError(Exception):
+    """timer errors"""
+
+class timer():
+    def __init__(self):
+        self.start_time = None
+
+    def start(self):
+            if self.start_time is not None:
+                raise timerError(f'Timer is already running')
+            self.start_time = time.perf_counter()
+
+    def stop(self):
+            if self.start_time is None:
+                raise timerError(f"Timer is not running. Use .start() to start it")
+
+            self.elapsed_time = time.perf_counter() - self.start_time
+            self.start_time = None
+            print(f"Elapsed time: {self.elapsed_time:0.4f} seconds")
+
 
 class App(ctk.CTk):
     def __init__(self):
@@ -332,7 +352,8 @@ class Model():
 
         global xvTrain
         global xvTest
-        start = time.time()
+        t = timer()
+        t.start()
         #creating an instance of the model and training it using dataset
         LRModel = self.model
         LRModel.fit(xvTrain,y_train) 
@@ -347,8 +368,9 @@ class Model():
         self.metrics['Recall'] = self.recall
         self.metrics['F1 Score'] = self.f1
 
-        end = time.time()
-        self.trainTime = end-start
+        t.stop()
+        self.trainingTime = t.elapsed_time
+        print(self.trainingTime)
 
         
 def exitProgram(): #ends program
