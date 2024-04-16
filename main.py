@@ -172,11 +172,34 @@ class modelTabView(ctk.CTkTabview):
         self.add('Model 3')
         self.logisticModel = Model(LogisticRegression())
 
+        frame1 = modelFrame(self.tab('Model 1'),1)
+        frame1.grid(row = 0, column = 0, sticky = 'nw')
+
+        frame2 = modelFrame(self.tab('Model 2'),2)
+        frame2.grid(row = 0, column = 0, sticky = 'nw')
+
+        frame3 = modelFrame(self.tab('Model 3'),3)
+        frame3.grid(row = 0, column = 0, sticky = 'nw')
+
+
+
+class modelFrame(ctk.CTkFrame):
+    def __init__(self, master, tabNo):
+        super().__init__(master, fg_color='transparent')
+
+        if tabNo == 1:
+            #creating an instance of the AI model
+            self.logisticModel = Model(LogisticRegression()) 
+        elif tabNo == 2:
+            pass
+        elif tabNo == 3:
+            pass
+
         def trainSelectedModel(x,y,model,tabNo):
 
             if tabNo == 1:
-                self.model1StatusLabel.configure(text = 'Training model, please wait...')
-                self.trainModel1Button.configure(state = 'disabled')
+                self.modelStatusLabel.configure(text = 'Training model, please wait...')
+                self.trainModelButton.configure(state = 'disabled')
             elif tabNo == 2:
                 pass #add code here when other 2 tabs are functional
             elif tabNo == 3:
@@ -186,10 +209,10 @@ class modelTabView(ctk.CTkTabview):
             model.trainModel(x,y) 
 
             if tabNo == 1:
-                self.model1StatusLabel.after(10,self.model1StatusLabel.destroy())
+                self.modelStatusLabel.after(10,self.modelStatusLabel.destroy())
                 i = 1
                 for metric in model.metrics:
-                    self.metricLabel = ctk.CTkLabel(self.metricsFrame1,
+                    self.metricLabel = ctk.CTkLabel(self.metricsFrame,
                                             text = f'{metric}: {model.metrics[metric]}',
                                             fg_color= 'lightgray',
                                             corner_radius=5,
@@ -198,56 +221,53 @@ class modelTabView(ctk.CTkTabview):
                                             )
                     self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
                     i+=1
-                self.model1Trained = True
             elif tabNo == 2:
                 pass
             elif tabNo == 3:
                 pass
+            return
 
-        #Tab 1 -> LOGISTIC REGRESSION
-        self.model1NameLabel = ctk.CTkLabel(self.tab('Model 1'),
+        self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
+        self.semiBold = ctk.CTkFont(family='SF-Pro', size = 22, weight='bold')
+
+        self.modelNameLabel = ctk.CTkLabel(self,
                                             text = 'Logistic Regression',
                                             font = self.semiBold)
-        self.model1NameLabel.grid(column = 0, row = 0, columnspan = 3, pady = 5, padx = 5, sticky = 'w')
+        self.modelNameLabel.grid(column = 0, row = 0, columnspan = 3, pady = 5, padx = 5, sticky = 'w')
 
-        self.metricsFrame1 = ctk.CTkFrame(self.tab('Model 1'),width=250, height = 190)
-        self.metricsFrame1.grid(row = 1, column = 0, padx = 5, pady = 5, rowspan = 2)
+        self.metricsFrame = ctk.CTkFrame(self,width=250, height = 190)
+        self.metricsFrame.grid(row = 1, column = 0, padx = 5, pady = 5, rowspan = 2)
 
-        self.metricsLabel1 = ctk.CTkLabel(self.metricsFrame1,
+        self.metricsLabel = ctk.CTkLabel(self.metricsFrame,
                                           text = 'Model Metrics',
                                           font = self.normalFont
                                           )
-        self.metricsLabel1.grid(row = 0, column = 0, sticky = 'w',padx = 5)
+        self.metricsLabel.grid(row = 0, column = 0, sticky = 'w',padx = 5)
 
-        self.model1StatusLabel = ctk.CTkLabel(self.metricsFrame1,
+        self.modelStatusLabel = ctk.CTkLabel(self.metricsFrame,
                                              text = 'Model not trained.\nPress [Train Model] to begin training.',
                                              font = self.normalFont,
                                              width=250, height = 150
                                              )
-        self.model1StatusLabel.grid(column = 0, row = 1, pady = 5, padx = 5)
+        self.modelStatusLabel.grid(column = 0, row = 1, pady = 5, padx = 5)
 
-        self.trainModel1Button = ctk.CTkButton(self.tab('Model 1'),
+        self.trainModelButton = ctk.CTkButton(self,
                                     text = 'Train Model', 
-                                    command = lambda: threading.Thread(target=trainSelectedModel,args=(x,y,self.logisticModel,1)).start()
+                                    command = lambda: threading.Thread(target=trainSelectedModel,args=(x,y,self.logisticModel,tabNo)).start()
                                     )
-        self.trainModel1Button.grid(column = 0, row = 3, padx = 5, pady = 5)
+        self.trainModelButton.grid(column = 0, row = 3, padx = 5, pady = 5)
 
-        self.URLbox1 = ctk.CTkEntry(self.tab('Model 1'),
+        self.URLbox = ctk.CTkEntry(self,
                                     placeholder_text='Paste URL here',
                                     width=250
                                     )
-        self.URLbox1.grid(row = 0, column = 1, padx = 5)
+        self.URLbox.grid(row = 0, column = 1, padx = 5)
 
-        self.textbox1 = ctk.CTkTextbox(self.tab('Model 1'),
+        self.textbox = ctk.CTkTextbox(self,
                                        width=250,
                                        height = 175)
-        self.textbox1.insert('0.0', 'Paste body text of article here. (delete this text when pasting)')
-        self.textbox1.grid(row = 1, column = 1)
-
-        
-        #Tab 2 ->
-
-
+        self.textbox.insert('0.0', 'Paste body text of article here. (delete this text when pasting)')
+        self.textbox.grid(row = 1, column = 1)
 
 class Model():
     def __init__(self, model):
