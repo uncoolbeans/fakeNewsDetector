@@ -10,13 +10,22 @@ import string
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+#logistic regression model
 from sklearn.linear_model import LogisticRegression
+
+#Decision tree model
+from sklearn.tree import DecisionTreeClassifier
+
+
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+
 
 import customtkinter as ctk
 import threading
 import pyglet
-
+import time
 
 pyglet.font.add_file('SF-Pro.ttf')
 pyglet.font.add_file('SF-Pro-Text-Heavy.otf')
@@ -104,22 +113,73 @@ def switchToNewScreen(oldFrame,newFrame): #general purpose switch screen functio
     newFrame.pack()
     return
 
+#pre-processing and vectorising text
+xvTrain = None
+xvTest = None
+y_test = None
+y_train = None
+
+def vectoriseData():
+    global xvTrain, xvTest, y_test, y_train
+    data['text'] = data['text'].apply(preProcess)
+    x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) #creates training and test sets from dataset
+    vectorizer = TfidfVectorizer()
+    xvTrain = vectorizer.fit_transform(x_train)
+    xvTest = vectorizer.transform(x_test)
+
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.geometry("1200x700")
-        self.title("AI Fake News Detection")
 
         self.columnconfigure(0, weight = 1)
         self.rowconfigure(0, weight= 1)
 
+        self.loadScreen = loadingScreen(self)
+        self.loadScreen.grid(row = 0, column = 0)
 
-        screen1 = mainScreen(self)
-        screen1.grid(row = 0, column = 0, sticky = 'nw')
+        def vectoriseData():
+            print('vectorising data')
+            global xvTrain, xvTest, y_test, y_train
+            data['text'] = data['text'].apply(preProcess)
+            x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) #creates training and test sets from dataset
+            vectorizer = TfidfVectorizer()
+            xvTrain = vectorizer.fit_transform(x_train)
+            xvTest = vectorizer.transform(x_test)
+
+            self.loadScreen.after(10, self.loadScreen.destroy())
+
+            self.screen1 = mainScreen(self)
+            self.screen1.grid(row = 0, column = 0, sticky = 'nw')
+
+        self.geometry("1200x700")
+        self.title("AI Fake News Detection")
+
+        vectoriserThread = threading.Thread(target=vectoriseData)
+        vectoriserThread.start()
+
+
+
+        #screen1 = mainScreen(self)
+        #screen1.grid(row = 0, column = 0, sticky = 'nw')
 
 ctk.set_appearance_mode('light')
 
+class loadingScreen(ctk.CTkFrame):
+    def __init__(self,master):
+        super().__init__(master=master,width = 900, height = 700)
+
+        self.bigFont = ctk.CTkFont(family='SF-Pro',size =42, weight = 'bold')
+
+        self.loadingLabel = ctk.CTkLabel(self, 
+                                         text = 'Preparing the data for training, please wait...',
+                                         font = self.bigFont,
+                                         corner_radius=10)
+        self.columnconfigure(0,weight=1)
+        self.rowconfigure(0, weight= 1)
+
+        self.loadingLabel.grid(row = 0, column = 0, padx = 0, pady = 0)
+        
 
 class mainScreen(ctk.CTkFrame):
     def __init__(self,master):
@@ -186,52 +246,44 @@ class modelTabView(ctk.CTkTabview):
 class modelFrame(ctk.CTkFrame):
     def __init__(self, master, tabNo):
         super().__init__(master, fg_color='transparent')
-
+        #creating an instance of the AI model
         if tabNo == 1:
-            #creating an instance of the AI model
             self.logisticModel = Model(LogisticRegression()) 
+            self.modelName = 'Logisitic Regression'
         elif tabNo == 2:
-            pass
+            self.modelName = 'Decision Tree Classifier'
+            self.logisticModel = Model(DecisionTreeClassifier()) 
         elif tabNo == 3:
-            pass
+            self.modelName =  'PLACEHOLDER'
 
         def trainSelectedModel(x,y,model,tabNo):
 
-            if tabNo == 1:
-                self.modelStatusLabel.configure(text = 'Training model, please wait...')
-                self.trainModelButton.configure(state = 'disabled')
-            elif tabNo == 2:
-                pass #add code here when other 2 tabs are functional
-            elif tabNo == 3:
-                pass
+            self.modelStatusLabel.configure(text = 'Training model, please wait...')
+            self.trainModelButton.configure(state = 'disabled')
+
             
             #train model
             model.trainModel(x,y) 
 
-            if tabNo == 1:
-                self.modelStatusLabel.after(10,self.modelStatusLabel.destroy())
-                i = 1
-                for metric in model.metrics:
-                    self.metricLabel = ctk.CTkLabel(self.metricsFrame,
-                                            text = f'{metric}: {model.metrics[metric]}',
-                                            fg_color= 'lightgray',
-                                            corner_radius=5,
-                                            height = 35,
-                                            width = 250,
-                                            )
-                    self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
-                    i+=1
-            elif tabNo == 2:
-                pass
-            elif tabNo == 3:
-                pass
-            return
+            self.modelStatusLabel.after(10,self.modelStatusLabel.destroy())
+            i = 1
+            for metric in model.metrics:
+                self.metricLabel = ctk.CTkLabel(self.metricsFrame,
+                                        text = f'{metric}: {model.metrics[metric]}',
+                                        fg_color= 'lightgray',
+                                        corner_radius=5,
+                                        height = 35,
+                                        width = 250,
+                                        )
+                self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
+                i+=1
+
 
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
         self.semiBold = ctk.CTkFont(family='SF-Pro', size = 22, weight='bold')
 
         self.modelNameLabel = ctk.CTkLabel(self,
-                                            text = 'Logistic Regression',
+                                            text = self.modelName,
                                             font = self.semiBold)
         self.modelNameLabel.grid(column = 0, row = 0, columnspan = 3, pady = 5, padx = 5, sticky = 'w')
 
@@ -275,13 +327,12 @@ class Model():
         self.metrics = {'Accuracy': 0, 'Precision': 0, 'Recall': 0, 'F1 Score': 0}
 
     def trainModel(self,x,y):
+
         print(f'training')
 
-        data['text'] = data['text'].apply(preProcess)
-        x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) #creates training and test sets from dataset
-        vectorizer = TfidfVectorizer()
-        xvTrain = vectorizer.fit_transform(x_train)
-        xvTest = vectorizer.transform(x_test)
+        global xvTrain
+        global xvTest
+        start = time.time()
         #creating an instance of the model and training it using dataset
         LRModel = self.model
         LRModel.fit(xvTrain,y_train) 
@@ -296,18 +347,10 @@ class Model():
         self.metrics['Recall'] = self.recall
         self.metrics['F1 Score'] = self.f1
 
+        end = time.time()
+        self.trainTime = end-start
+
         
-
-
-# FOR TRAINING MODEL
-        #self.button = ctk.CTkButton(self,text = 'train model', command = lambda: threading.Thread(target=trainModel,args=(x,y)).start())
-        #self.button.grid(column = 0, row = 1)
-
-        #self.button2 = ctk.CTkButton(self,text = 'press me2', command = lambda: testFunc())
-        #self.button2.grid(column = 0, row = 2)
-        
-        
-
 def exitProgram(): #ends program
     app.quit()
 
