@@ -23,6 +23,9 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 import customtkinter as ctk
+from CTkMessagebox import CTkMessagebox
+from newspaper import Article
+from newspaper import Config
 import threading
 import pyglet
 import time
@@ -81,15 +84,6 @@ def preProcess(text): #make the text suitable for the machine to read, eliminate
     #text = ''.join(words)
 #
     return text
-
-
-def scrape(link):
-    url = link
-    page = urlopen(url)
-    html = page.read().decode("utf-8")
-    soup = BeautifulSoup(html, "html.parser")
-
-    return soup.get_text()
 
 
 #print('preprocessing.....')
@@ -161,8 +155,14 @@ class App(ctk.CTk):
         def vectoriseData():
             print('vectorising data')
             global xvTrain, xvTest, y_test, y_train
+
+            #apply pre processing steps
             data['text'] = data['text'].apply(preProcess)
-            x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) #creates training and test sets from dataset
+
+            #split data into testing sets and training sets randomly
+            x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) 
+
+            #vectorise data to use to train model
             vectorizer = TfidfVectorizer()
             xvTrain = vectorizer.fit_transform(x_train)
             xvTest = vectorizer.transform(x_test)
@@ -175,6 +175,7 @@ class App(ctk.CTk):
         self.geometry("1200x700")
         self.title("AI Fake News Detection")
 
+        #carry out pre=processing and vectorise data before model is trained
         vectoriserThread = threading.Thread(target=vectoriseData)
         vectoriserThread.start()
 
@@ -298,6 +299,34 @@ class modelFrame(ctk.CTkFrame):
                 self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
                 i+=1
 
+        def scrape(link):
+            url = link
+            url = url.strip()
+
+            agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 OPR/107.0.0.0'
+            config = Config()
+            config.browser_user_agent = agent
+
+            #check if URL is empty
+            if url == '':
+                msg = CTkMessagebox(title="Error", message="URL box must not be empty if you wish to use an URL!", icon="cancel")
+                return
+            
+            article = Article(url)
+            article.download()
+            article.parse()
+
+            text = article.text
+
+            #clear textbox of text
+            self.textbox.delete(0.0,'end')
+            #add scraped text to textbox
+            self.textbox.insert(0.0, text)
+
+
+
+
+                
 
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
         self.semiBold = ctk.CTkFont(family='SF-Pro', size = 22, weight='bold')
@@ -336,10 +365,15 @@ class modelFrame(ctk.CTkFrame):
         self.URLbox.grid(row = 0, column = 1, padx = 5)
 
         self.textbox = ctk.CTkTextbox(self,
-                                       width=250,
+                                       width=400,
                                        height = 175)
         self.textbox.insert('0.0', 'Paste body text of article here. (delete this text when pasting)')
-        self.textbox.grid(row = 1, column = 1)
+        self.textbox.grid(row = 1, column = 1,columnspan = 2, sticky = 'w')
+
+        self.scrapButton = ctk.CTkButton(self, text =  'Scrape URL text',
+                                         command = lambda: scrape(self.URLbox.get())
+                                         )
+        self.scrapButton.grid(row = 0, column = 2, padx = 5)
 
 class Model():
     def __init__(self, model):
