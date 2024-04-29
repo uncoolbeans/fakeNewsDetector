@@ -1,14 +1,9 @@
 import pandas as pd
 import numpy as np
 import re
-import nltk
+
 from sklearn.model_selection import train_test_split
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer, WordNetLemmatizer
-import string
-from bs4 import BeautifulSoup
-from urllib.request import urlopen
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 #logistic regression model
@@ -113,13 +108,7 @@ xvTest = None
 y_test = None
 y_train = None
 
-def vectoriseData():
-    global xvTrain, xvTest, y_test, y_train
-    data['text'] = data['text'].apply(preProcess)
-    x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) #creates training and test sets from dataset
-    vectorizer = TfidfVectorizer()
-    xvTrain = vectorizer.fit_transform(x_train)
-    xvTest = vectorizer.transform(x_test)
+vectorizer = None
 
 class timerError(Exception):
     """timer errors"""
@@ -153,6 +142,8 @@ class App(ctk.CTk):
         self.loadScreen.grid(row = 0, column = 0)
 
         def vectoriseData():
+            global vectorizer
+
             print('vectorising data')
             global xvTrain, xvTest, y_test, y_train
 
@@ -163,7 +154,7 @@ class App(ctk.CTk):
             x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3) 
 
             #vectorise data to use to train model
-            vectorizer = TfidfVectorizer()
+            vectorizer = TfidfVectorizer(stop_words='english')
             xvTrain = vectorizer.fit_transform(x_train)
             xvTest = vectorizer.transform(x_test)
 
@@ -269,13 +260,13 @@ class modelFrame(ctk.CTkFrame):
         super().__init__(master, fg_color='transparent')
         #creating an instance of the AI model
         if tabNo == 1:
-            self.logisticModel = Model(LogisticRegression()) 
+            self.model = Model(LogisticRegression()) 
             self.modelName = 'Logisitic Regression'
         elif tabNo == 2:
             self.modelName = 'Decision Tree Classifier'
-            self.logisticModel = Model(DecisionTreeClassifier()) 
+            self.model = Model(DecisionTreeClassifier()) 
         elif tabNo == 3:
-            self.modelName =  'PLACEHOLDER'
+            self.modelName =  'Random Forest Classifier'
 
         def trainSelectedModel(x,y,model,tabNo):
 
@@ -298,34 +289,52 @@ class modelFrame(ctk.CTkFrame):
                                         )
                 self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
                 i+=1
+            self.predictButton.configure(state = 'enabled')
 
-        def scrape(link):
+        def scrape(link): #extracts body text from a news article URL
             url = link
             url = url.strip()
-
-            agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 OPR/107.0.0.0'
-            config = Config()
-            config.browser_user_agent = agent
 
             #check if URL is empty
             if url == '':
                 msg = CTkMessagebox(title="Error", message="URL box must not be empty if you wish to use an URL!", icon="cancel")
                 return
-            
             article = Article(url)
-            article.download()
+            try:
+                article.download()
+            except:
+                URLerror = CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox', icon='cancel' )
+                return
             article.parse()
 
             text = article.text
-
             #clear textbox of text
             self.textbox.delete(0.0,'end')
             #add scraped text to textbox
             self.textbox.insert(0.0, text)
 
+        def predict():
+            global vectorizer
+
+            text = {'text': [self.textbox.get(0.0,'end')]}
+            test = pd.DataFrame(text)
+
+            test['text'] = test['text'].apply(preProcess)
+            processedText = test['text']
+
+            vectorisedText = vectorizer.transform(processedText)
+
+            prediction = self.model.predict(vectorisedText)
+
+            if prediction == 0:
+                print('It is fake news')
+
+            elif prediction == 1:
+                print('It is real news')
 
 
-
+            
+            return
                 
 
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
@@ -354,7 +363,7 @@ class modelFrame(ctk.CTkFrame):
 
         self.trainModelButton = ctk.CTkButton(self,
                                     text = 'Train Model', 
-                                    command = lambda: threading.Thread(target=trainSelectedModel,args=(x,y,self.logisticModel,tabNo)).start()
+                                    command = lambda: threading.Thread(target=trainSelectedModel,args=(x,y,self.model,tabNo)).start()
                                     )
         self.trainModelButton.grid(column = 0, row = 3, padx = 5, pady = 5)
 
@@ -370,10 +379,18 @@ class modelFrame(ctk.CTkFrame):
         self.textbox.insert('0.0', 'Paste body text of article here. (delete this text when pasting)')
         self.textbox.grid(row = 1, column = 1,columnspan = 2, sticky = 'w')
 
-        self.scrapButton = ctk.CTkButton(self, text =  'Scrape URL text',
+        self.scrapeButton = ctk.CTkButton(self, text =  'Scrape URL text',
                                          command = lambda: scrape(self.URLbox.get())
                                          )
-        self.scrapButton.grid(row = 0, column = 2, padx = 5)
+        self.scrapeButton.grid(row = 0, column = 2, padx = 5)
+
+        self.predictButton = ctk.CTkButton(self,
+                                           text = 'Get prediction',
+                                           command = lambda: predict(),
+                                           state='disabled'
+                                           )
+        self.predictButton.grid(row = 2, column = 1, columnspan = 2)
+        
 
 class Model():
     def __init__(self, model):
@@ -406,6 +423,13 @@ class Model():
         self.trainingTime = t.elapsed_time
         print(self.trainingTime)
 
+    def predict(self,vectorisedText):
+
+        prediction = self.model.predict(vectorisedText)
+
+        return prediction[0]
+
+
         
 def exitProgram(): #ends program
     app.quit()
@@ -413,3 +437,6 @@ def exitProgram(): #ends program
 
 app = App()
 app.mainloop()
+
+
+#to get a prediction 
