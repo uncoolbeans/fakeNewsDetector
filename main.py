@@ -9,8 +9,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 #logistic regression model
 from sklearn.linear_model import LogisticRegression
 
-#Decision tree model
-from sklearn.tree import DecisionTreeClassifier
+#Random forest model
+from sklearn.ensemble import RandomForestClassifier
+
+#Naive Bayes Model
+from sklearn.naive_bayes import MultinomialNB
 
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -158,6 +161,9 @@ class App(ctk.CTk):
             xvTrain = vectorizer.fit_transform(x_train)
             xvTest = vectorizer.transform(x_test)
 
+            print(xvTrain)
+            print(xvTest)
+
             self.loadScreen.after(10, self.loadScreen.destroy())
 
             self.screen1 = mainScreen(self)
@@ -264,9 +270,10 @@ class modelFrame(ctk.CTkFrame):
             self.modelName = 'Logisitic Regression'
         elif tabNo == 2:
             self.modelName = 'Decision Tree Classifier'
-            self.model = Model(DecisionTreeClassifier()) 
+            self.model = Model(RandomForestClassifier()) 
         elif tabNo == 3:
-            self.modelName =  'Random Forest Classifier'
+            self.modelName =  'Naive Bayes Classifier'
+            self.model = Model(MultinomialNB())
 
         def trainSelectedModel(x,y,model,tabNo):
 
