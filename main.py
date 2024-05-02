@@ -19,7 +19,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-
+import newspaper
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 from newspaper import Article
@@ -257,7 +257,6 @@ class modelTabView(ctk.CTkTabview):
         frame3.grid(row = 0, column = 0, sticky = 'nw')
 
 
-
 class modelFrame(ctk.CTkFrame):
     def __init__(self, master, tabNo):
         super().__init__(master, fg_color='transparent')
@@ -294,6 +293,7 @@ class modelFrame(ctk.CTkFrame):
                 self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
                 i+=1
             self.predictButton.configure(state = 'enabled')
+            return
 
         def scrape(link): #extracts body text from a news article URL
             url = link
@@ -304,15 +304,19 @@ class modelFrame(ctk.CTkFrame):
                 msg = CTkMessagebox(title="Error", message="URL box must not be empty if you wish to use an URL!", icon="cancel")
                 return
             article = Article(url)
+
             try:
                 article.download()
-            except:
-                URLerror = CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox', icon='cancel' )
+                article.parse()
+            except newspaper.article.ArticleException:
+                CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox.', icon='cancel' )
                 return
             
             #extracting text from article
-            article.parse()
             text = article.text
+
+            if text.strip() == '':
+                CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox. Please ensure it is a news article.', icon='cancel' )
 
             #clear textbox of text
             self.textbox.delete(0.0,'end')
@@ -343,8 +347,6 @@ class modelFrame(ctk.CTkFrame):
             elif prediction == 1:
                 print('It is real news')
 
-
-            
             return
                 
 
