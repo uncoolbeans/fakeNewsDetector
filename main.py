@@ -161,9 +161,6 @@ class App(ctk.CTk):
             xvTrain = vectorizer.fit_transform(x_train)
             xvTest = vectorizer.transform(x_test)
 
-            print(xvTrain)
-            print(xvTest)
-
             self.loadScreen.after(10, self.loadScreen.destroy())
 
             self.screen1 = mainScreen(self)
@@ -269,7 +266,7 @@ class modelFrame(ctk.CTkFrame):
             self.model = Model(LogisticRegression()) 
             self.modelName = 'Logisitic Regression'
         elif tabNo == 2:
-            self.modelName = 'Decision Tree Classifier'
+            self.modelName = 'Random Forest Classifier'
             self.model = Model(RandomForestClassifier()) 
         elif tabNo == 3:
             self.modelName =  'Naive Bayes Classifier'
@@ -312,13 +309,18 @@ class modelFrame(ctk.CTkFrame):
             except:
                 URLerror = CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox', icon='cancel' )
                 return
+            
+            #extracting text from article
             article.parse()
-
             text = article.text
+
             #clear textbox of text
             self.textbox.delete(0.0,'end')
             #add scraped text to textbox
             self.textbox.insert(0.0, text)
+
+            done = CTkMessagebox(title = 'Text extracted', message = 'Successfully scraped news article for body text. Click "get prediction" to run the text through the model.', icon = 'check')
+            return
 
         def predict():
             global vectorizer
@@ -332,6 +334,8 @@ class modelFrame(ctk.CTkFrame):
             vectorisedText = vectorizer.transform(processedText)
 
             prediction = self.model.predict(vectorisedText)
+
+            print(prediction)
 
             if prediction == 0:
                 print('It is fake news')
