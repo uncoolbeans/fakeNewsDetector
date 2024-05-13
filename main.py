@@ -116,10 +116,10 @@ y_train = None
 vectorizer = None
 
 class article_info():
-    def __init__(self, text, title = '',model = '', date = ''):
+    def __init__(self, text, title = '',model = '', date = '', verdict = 1):
         text = re.sub(r'\n',' ', text)
         if len(title) > 30:
-            title = title[0:15]+'...'
+            title = title[0:25]+'...'
             self.title = title
         else:
             self.title = title
@@ -129,17 +129,22 @@ class article_info():
         else:
 
             self.text = text
-        if date != '':
+
+        if date == None:
+            self.date = ''
+        elif date != '':
             self.date = f"{date.day}/{date.month}/{date.year}"
         else:
             self.date = date
+
         self.model = model
 
-predictedArticles = [article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
-                     article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
-                     article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
-                     article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
-                     ]
+        if verdict == 1:
+            self.verdict = 'Real'
+        else:
+            self.verdict = 'Fake'
+
+predictedArticles = []
 
 class timerError(Exception):
     """timer errors"""
@@ -328,6 +333,9 @@ class modelFrame(ctk.CTkFrame):
                                         corner_radius=5,
                                         height = 35,
                                         width = 250,
+                                        justify = 'left',
+                                        anchor = 'w'
+                                
                                         )
                 self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
                 i+=1
@@ -384,9 +392,15 @@ class modelFrame(ctk.CTkFrame):
 
             if prediction == 0:
                 print('It is fake news')
+                CTkMessagebox(title = 'Prediction',
+                              message=f'{self.modelName} predicts that the article contains FAKE news.',
+                              icon='cancel')
 
             elif prediction == 1:
                 print('It is real news')
+                CTkMessagebox(title = 'Prediction',
+                              message=f'{self.modelName} predicts that the article contains REAL news.',
+                              icon='check')
 
             if self.article is not None:
                 msg = CTkMessagebox(title = 'URL Detected', 
@@ -395,11 +409,12 @@ class modelFrame(ctk.CTkFrame):
                                     option_1='Yes',
                                     option_2='No')
                 if msg.get() == 'Yes':
-                    predictedArticles.insert(0,article_info(self.article.text, self.article.title, self.modelName, self.article.publish_date))
+                    predictedArticles.insert(0,article_info(self.article.text, self.article.title, self.modelName, self.article.publish_date, verdict=prediction))
                     predictions.draw()
                 else:
-                    predictedArticles.insert(0,article_info(self.article.text, model = self.modelName))
+                    predictedArticles.insert(0,article_info(self.article.text, model = self.modelName, verdict = prediction))
                     predictions.draw()
+
             
             return
         
@@ -507,37 +522,60 @@ class predictionsFrame(ctk.CTkScrollableFrame):
     def draw(self):
         global predictedArticles
 
+        if len(predictedArticles) ==  0:
+                self.label = ctk.CTkLabel(self, text = 'No past predictions, start training models to begin!',
+                                     fg_color='transparent',bg_color='transparent',
+                                     font=self.bigFont
+                                     )
+                self.label.grid(row = 0, column = 0)
+                return
+
         for i,article in enumerate(predictedArticles):
             self.frame = ctk.CTkFrame(self, width = 335, height = 250,
                                           fg_color=('white','grey'),
                                           corner_radius=10
                                           )
-
+            self.frame.columnconfigure(1,weight = 2)
+            self.frame.columnconfigure(0, weight = 1)
             if article.title == '':
-                    titleLabel = ctk.CTkLabel(self.frame,text = f"Title: None",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    titleLabel = ctk.CTkLabel(self.frame,text = f"Title: None",fg_color='transparent',bg_color='transparent',width=210, anchor='w', font=self.bigFont)
                     titleLabel.grid(row = 0, column = 0, padx = 5, pady = 0, sticky = 'w')
             else:
-                    titleLabel = ctk.CTkLabel(self.frame,text = f"Title: {article.title}",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    titleLabel = ctk.CTkLabel(self.frame,text = f"Title: {article.title}",fg_color='transparent',bg_color='transparent',width=210, anchor='w', font=self.bigFont)
                     titleLabel.grid(row = 0, column = 0, padx = 5, pady = 0, sticky = 'w')
 
             if article.date == '':
-                    dateLabel = ctk.CTkLabel(self.frame,text = f"Date: None",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    dateLabel = ctk.CTkLabel(self.frame,text = f"Date: None",fg_color='transparent',bg_color='transparent',width=210, anchor='w', font=self.bigFont)
                     dateLabel.grid(row = 1, column = 0, padx = 5, pady = 5, sticky = 'nw')
             else:
-                    dateLabel = ctk.CTkLabel(self.frame,text = f"Date: {article.date}",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    dateLabel = ctk.CTkLabel(self.frame,text = f"Date: {article.date}",fg_color='transparent',bg_color='transparent',width=210, anchor='w', font=self.bigFont)
                     dateLabel.grid(row = 1, column = 0, padx = 5, pady = 5, sticky = 'nw')
 
             textLabel = ctk.CTkLabel(self.frame,
                                      text = f"Text:\n{article.text}",
-                                     fg_color='transparent',bg_color='transparent',width=155, anchor='w',
+                                     fg_color='transparent',bg_color='transparent',
+                                     width=100, anchor='w',
                                      justify = 'left'
                                      )
             textLabel.grid(row = 2, column = 0, padx = 5, pady = 5, sticky = 'w', columnspan = 2)
-
-            verdictLabel = ctk.CTkLabel(self.frame,text = '',fg_color='transparent',
-                                            width=175,
-                                            height =75)
+            if article.verdict == 'Real':
+                color ='green'
+            else:
+                color = 'red'
+            verdictLabel = ctk.CTkLabel(self.frame,
+                                        text = article.verdict,
+                                        fg_color= color,
+                                        corner_radius=10
+                                        )
             verdictLabel.grid(row = 0, column = 1, rowspan = 2,padx=5,pady=5)
+
+            modelLabel = ctk.CTkLabel(self.frame,
+                                      text = article.model,
+                                      width = 335,
+                                      justify = 'left',
+                                      font = self.bigFont
+                                      )
+            modelLabel.grid(row = 3, column = 0, columnspan = 2, padx = 3, pady = 5, sticky = 'w')
 
             self.frame.grid(row = i, column = 0, padx = 5, pady = 5)
             print(article.title)
