@@ -57,6 +57,8 @@ data = data.sample(frac=1) #shuffles the dataset
 data.reset_index(inplace=True)
 data.drop(['index'], axis = 1, inplace = True)
 
+predictions = None
+
 
 def preProcess(text): #make the text suitable for the machine to read, eliminate irrelevant bits
 
@@ -112,6 +114,32 @@ y_test = None
 y_train = None
 
 vectorizer = None
+
+class article_info():
+    def __init__(self, text, title = '',model = '', date = ''):
+        text = re.sub(r'\n',' ', text)
+        if len(title) > 30:
+            title = title[0:15]+'...'
+            self.title = title
+        else:
+            self.title = title
+        if len(text) > 55:
+            text = text[0:55]+'\n'+text[55:115]+'...'
+            self.text = text
+        else:
+
+            self.text = text
+        if date != '':
+            self.date = f"{date.day}/{date.month}/{date.year}"
+        else:
+            self.date = date
+        self.model = model
+
+predictedArticles = [article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
+                     article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
+                     article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
+                     article_info(text = 'auwdhawdiauwdga', title = 'aiydglwydgail'),
+                     ]
 
 class timerError(Exception):
     """timer errors"""
@@ -203,6 +231,7 @@ class mainScreen(ctk.CTkFrame):
         global y
         global data
         global LRModel
+        global predictions
 
         self.bigFont = ctk.CTkFont(family='SF-Pro',size =42, weight = 'bold')
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
@@ -229,6 +258,15 @@ class mainScreen(ctk.CTkFrame):
 
         modelsTab = modelTabView(self)
         modelsTab.grid(row = 2, column = 0, columnspan = 2, padx = 10, pady = 10)
+
+        predictionsLabel = ctk.CTkLabel(self, text = 'Recent Predictions',
+                                        fg_color='transparent',
+                                        font = ('SF-Pro', 25)
+                                        )
+        predictionsLabel.grid(column = 2, row = 0, padx =5, pady = 5, sticky = 'w')
+
+        predictions = predictionsFrame(self)
+        predictions.grid(row = 1, column = 2, padx = 10, pady = 5, rowspan = 3)
 
         
 class modelTabView(ctk.CTkTabview):
@@ -260,6 +298,7 @@ class modelTabView(ctk.CTkTabview):
 class modelFrame(ctk.CTkFrame):
     def __init__(self, master, tabNo):
         super().__init__(master, fg_color='transparent')
+        self.article = None
         #creating an instance of the AI model
         if tabNo == 1:
             self.model = Model(LogisticRegression()) 
@@ -303,17 +342,17 @@ class modelFrame(ctk.CTkFrame):
             if url == '':
                 msg = CTkMessagebox(title="Error", message="URL box must not be empty if you wish to use an URL!", icon="cancel")
                 return
-            article = Article(url)
+            self.article = Article(url)
 
             try:
-                article.download()
-                article.parse()
+                self.article.download()
+                self.article.parse()
             except newspaper.article.ArticleException:
                 CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox.', icon='cancel' )
                 return
             
             #extracting text from article
-            text = article.text
+            text = self.article.text
 
             if text.strip() == '':
                 CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox. Please ensure it is a news article.', icon='cancel' )
@@ -324,10 +363,12 @@ class modelFrame(ctk.CTkFrame):
             self.textbox.insert(0.0, text)
 
             done = CTkMessagebox(title = 'Text extracted', message = 'Successfully scraped news article for body text. Click "get prediction" to run the text through the model.', icon = 'check')
-            return
+            return 
 
         def predict():
+            global predictions
             global vectorizer
+            global predictedArticles
 
             text = {'text': [self.textbox.get(0.0,'end')]}
             test = pd.DataFrame(text)
@@ -347,7 +388,21 @@ class modelFrame(ctk.CTkFrame):
             elif prediction == 1:
                 print('It is real news')
 
+            if self.article is not None:
+                msg = CTkMessagebox(title = 'URL Detected', 
+                                    message=f'You have recently scraped an URL, do you want to use the following information obtained from the URL?\nTitle: {self.article.title}\nDate: {self.article.publish_date}',
+                                    icon = 'question',
+                                    option_1='Yes',
+                                    option_2='No')
+                if msg.get() == 'Yes':
+                    predictedArticles.insert(0,article_info(self.article.text, self.article.title, self.modelName, self.article.publish_date))
+                    predictions.draw()
+                else:
+                    predictedArticles.insert(0,article_info(self.article.text, model = self.modelName))
+                    predictions.draw()
+            
             return
+        
                 
 
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
@@ -398,11 +453,12 @@ class modelFrame(ctk.CTkFrame):
         self.scrapeButton.grid(row = 0, column = 2, padx = 5)
 
         self.predictButton = ctk.CTkButton(self,
-                                           text = 'Get prediction',
+                                           text = 'Get prediction from text',
                                            command = lambda: predict(),
                                            state='disabled'
                                            )
         self.predictButton.grid(row = 2, column = 1, columnspan = 2)
+
         
 
 class Model():
@@ -441,6 +497,53 @@ class Model():
         prediction = self.model.predict(vectorisedText)
 
         return prediction[0]
+
+class predictionsFrame(ctk.CTkScrollableFrame):
+    def __init__(self, master):
+        super().__init__(master, width = 380, height = 425)
+        self.bigFont = ctk.CTkFont(family='SF-Pro',size =13, weight = 'bold')
+        self.draw()
+
+    def draw(self):
+        global predictedArticles
+
+        for i,article in enumerate(predictedArticles):
+            self.frame = ctk.CTkFrame(self, width = 335, height = 250,
+                                          fg_color=('white','grey'),
+                                          corner_radius=10
+                                          )
+
+            if article.title == '':
+                    titleLabel = ctk.CTkLabel(self.frame,text = f"Title: None",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    titleLabel.grid(row = 0, column = 0, padx = 5, pady = 0, sticky = 'w')
+            else:
+                    titleLabel = ctk.CTkLabel(self.frame,text = f"Title: {article.title}",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    titleLabel.grid(row = 0, column = 0, padx = 5, pady = 0, sticky = 'w')
+
+            if article.date == '':
+                    dateLabel = ctk.CTkLabel(self.frame,text = f"Date: None",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    dateLabel.grid(row = 1, column = 0, padx = 5, pady = 5, sticky = 'nw')
+            else:
+                    dateLabel = ctk.CTkLabel(self.frame,text = f"Date: {article.date}",fg_color='transparent',bg_color='transparent',width=155, anchor='w', font=self.bigFont)
+                    dateLabel.grid(row = 1, column = 0, padx = 5, pady = 5, sticky = 'nw')
+
+            textLabel = ctk.CTkLabel(self.frame,
+                                     text = f"Text:\n{article.text}",
+                                     fg_color='transparent',bg_color='transparent',width=155, anchor='w',
+                                     justify = 'left'
+                                     )
+            textLabel.grid(row = 2, column = 0, padx = 5, pady = 5, sticky = 'w', columnspan = 2)
+
+            verdictLabel = ctk.CTkLabel(self.frame,text = '',fg_color='transparent',
+                                            width=175,
+                                            height =75)
+            verdictLabel.grid(row = 0, column = 1, rowspan = 2,padx=5,pady=5)
+
+            self.frame.grid(row = i, column = 0, padx = 5, pady = 5)
+            print(article.title)
+        pass
+
+        
 
 
         
