@@ -253,30 +253,33 @@ class mainScreen(ctk.CTkFrame):
                                        fg_color='transparent',
                                        font = self.bigFont,
                                        )
-        self.helloLabel.grid(column = 0, row = 0, padx = 10, pady = 10, sticky = 'sw')
+        self.helloLabel.grid(column = 0, row = 0, padx = 20, pady = 10, sticky = 'sw')
 
         self.aiLabel = ctk.CTkLabel(self, text = 'Model Information',
                                     fg_color='transparent',
                                     font = ('SF-Pro', 30)
                                     )
-        self.aiLabel.grid(row = 1, column = 0, padx = 10, pady = 10, sticky = 'sw')
+        self.aiLabel.grid(row = 1, column = 0, padx = 20, pady = 10, sticky = 'sw')
 
         modelsTab = modelTabView(self)
-        modelsTab.grid(row = 2, column = 0, columnspan = 2, padx = 10, pady = 10)
+        modelsTab.grid(row = 2, column = 0, columnspan = 2, padx = 20, pady = 10)
 
         predictionsLabel = ctk.CTkLabel(self, text = 'Recent Predictions',
                                         fg_color='transparent',
                                         font = ('SF-Pro', 25)
                                         )
-        predictionsLabel.grid(column = 2, row = 0, padx =5, pady = 5, sticky = 'w')
+        predictionsLabel.grid(column = 2, row = 0, padx = 10, sticky = 'sw')
 
         predictions = predictionsFrame(self)
         predictions.grid(row = 1, column = 2, padx = 10, pady = 5, rowspan = 3)
 
+        tips = tipsFrame(self)
+        tips.grid(row = 3, column = 0, columnspan = 2, padx = 20, pady = 10)
+
         
 class modelTabView(ctk.CTkTabview):
     def __init__(self,master):
-        super().__init__(master, width = 600,)
+        super().__init__(master, width = 600)
 
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
         self.semiBold = ctk.CTkFont(family='SF-Pro', size = 22, weight='bold')
@@ -515,7 +518,7 @@ class Model():
 
 class predictionsFrame(ctk.CTkScrollableFrame):
     def __init__(self, master):
-        super().__init__(master, width = 380, height = 425)
+        super().__init__(master, width = 365, height = 500)
         self.bigFont = ctk.CTkFont(family='SF-Pro',size =13, weight = 'bold')
         self.draw()
 
@@ -531,8 +534,8 @@ class predictionsFrame(ctk.CTkScrollableFrame):
                 return
 
         for i,article in enumerate(predictedArticles):
-            self.frame = ctk.CTkFrame(self, width = 335, height = 250,
-                                          fg_color=('white','grey'),
+            self.frame = ctk.CTkFrame(self,
+                                          fg_color='light grey',
                                           corner_radius=10
                                           )
             self.frame.columnconfigure(1,weight = 2)
@@ -581,10 +584,26 @@ class predictionsFrame(ctk.CTkScrollableFrame):
             print(article.title)
         pass
 
-        
+class tipsFrame(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, corner_radius=10)
 
+        quoteLabel = ctk.CTkLabel(self, text = 'uagiagdawigdwiagda',
+                                  fg_color='transparent', bg_color='transparent'
+                                )
+        quoteLabel.grid(row = 0, column = 1, padx = 255, pady = 45)
 
-        
+        self.backButton = ctk.CTkButton(self, text = '<',
+                                        width=20
+                                        )
+        self.backButton.grid(row = 0, column = 0, padx = 5, pady = 45)
+
+        self.fwdButton = ctk.CTkButton(self, text = '>',
+                                       width = 20
+                                        )
+        self.fwdButton.grid(row = 0, column = 2, padx = 5, pady = 45)
+        pass
+
 def exitProgram(): #ends program
     app.quit()
 
