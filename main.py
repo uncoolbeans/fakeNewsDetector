@@ -199,7 +199,7 @@ class App(ctk.CTk):
             self.screen1 = mainScreen(self)
             self.screen1.grid(row = 0, column = 0, sticky = 'nw')
 
-        self.geometry("1150x600")
+        self.geometry("1150x650")
         self.title("AI Fake News Detection")
 
         #carry out pre=processing and vectorise data before model is trained
@@ -586,40 +586,46 @@ class predictionsFrame(ctk.CTkScrollableFrame):
 
 class tipsFrame(ctk.CTkFrame):
     def __init__(self, master):
-        super().__init__(master, corner_radius=10)
+        super().__init__(master, corner_radius=10, width = 800, height = 150)
         self.counter = 0
 
-        self.tips = ["Apply the CRAAP Test: Currency, Relevance, Authority, Accuracy, Purpose to help decide if an article is telling the truth.",
-                     "A quick Google search will help check if a claim made in an article is supported by other sources or has been debunked.",
-                     "Rely on trusted and proven independent news sources such as Reuters, Associated Press and Agence-France Presse.",
-                     "Some popular news sites such as New York Times, BBC, Sydney Morning Herald  and Wall Street Journal may be biased an tell facts in different ways.",
-                     "Distinguish opinion from fact; newspapers often have opinion/op-ed/letters to the editor/editorials sections that are not focused on fact but rather opinion.",
+        self.tips = ["Apply the CRAAP Test: Currency, Relevance, Authority, Accuracy, Purpose\nto help decide if an article is telling the truth.",
+                     "A quick Google search will help check if a claim made in an article is\nsupported by other sources or has been debunked.",
+                     "Rely on trusted and proven independent news sources such as Reuters,\nAssociated Press and Agence-France Presse.",
+                     "Some popular news sites such as New York Times, BBC, Sydney Morning Herald \nand Wall Street Journal may be biased and tell facts in different ways.",
+                     "Distinguish opinion from fact; newspapers often have opinion/op-ed/letters \nto the editor/editorials sections that are not focused on fact but rather opinion.",
                      "Just because a friend or relative sent you something does not mean its true!",
                      ]
+        
 
         self.quoteLabel = ctk.CTkLabel(self, text = self.tips[self.counter],
-                                  fg_color='transparent', bg_color='transparent',
-                                  width = 205
+                                  fg_color=('white', 'darkgrey'), bg_color='transparent',
+                                  width = 550, height = 75,
+                                  corner_radius= 10
                                 )
-        self.quoteLabel.grid(row = 0, column = 1, padx = 10, pady = 45)
+        self.quoteLabel.place(relx=0.5, rely=0.5, anchor='c')
+
 
         self.backButton = ctk.CTkButton(self, text = '<',
                                         width=20,
                                         command = lambda: self.nextTip(-1)
                                         )
-        self.backButton.grid(row = 0, column = 0, padx = 5, pady = 45)
+        self.backButton.place(relx = 0.05, rely = 0.5, anchor = 'c')
 
         self.fwdButton = ctk.CTkButton(self, text = '>',
                                        width = 20,
                                        command= lambda: self.nextTip(1)
                                         )
-        self.fwdButton.grid(row = 0, column = 2, padx = 5, pady = 45)
-        pass
-
+        self.fwdButton.place(relx = 0.95, rely = 0.5, anchor = 'c')
+        self.grid_propagate(0)
+        self.pack_propagate(0)
+    
     def nextTip(self,n):
         self.counter += n
+        if self.counter >= len(self.tips) or self.counter <= -len(self.tips):
+            self.counter = 0
         self.quoteLabel.configure(text = self.tips[self.counter])
-    
+        pass
 
 def exitProgram(): #ends program
     app.quit()
