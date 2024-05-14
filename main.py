@@ -587,22 +587,39 @@ class predictionsFrame(ctk.CTkScrollableFrame):
 class tipsFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, corner_radius=10)
+        self.counter = 0
 
-        quoteLabel = ctk.CTkLabel(self, text = 'uagiagdawigdwiagda',
-                                  fg_color='transparent', bg_color='transparent'
+        self.tips = ["Apply the CRAAP Test: Currency, Relevance, Authority, Accuracy, Purpose to help decide if an article is telling the truth.",
+                     "A quick Google search will help check if a claim made in an article is supported by other sources or has been debunked.",
+                     "Rely on trusted and proven independent news sources such as Reuters, Associated Press and Agence-France Presse.",
+                     "Some popular news sites such as New York Times, BBC, Sydney Morning Herald  and Wall Street Journal may be biased an tell facts in different ways.",
+                     "Distinguish opinion from fact; newspapers often have opinion/op-ed/letters to the editor/editorials sections that are not focused on fact but rather opinion.",
+                     "Just because a friend or relative sent you something does not mean its true!",
+                     ]
+
+        self.quoteLabel = ctk.CTkLabel(self, text = self.tips[self.counter],
+                                  fg_color='transparent', bg_color='transparent',
+                                  width = 205
                                 )
-        quoteLabel.grid(row = 0, column = 1, padx = 255, pady = 45)
+        self.quoteLabel.grid(row = 0, column = 1, padx = 10, pady = 45)
 
         self.backButton = ctk.CTkButton(self, text = '<',
-                                        width=20
+                                        width=20,
+                                        command = lambda: self.nextTip(-1)
                                         )
         self.backButton.grid(row = 0, column = 0, padx = 5, pady = 45)
 
         self.fwdButton = ctk.CTkButton(self, text = '>',
-                                       width = 20
+                                       width = 20,
+                                       command= lambda: self.nextTip(1)
                                         )
         self.fwdButton.grid(row = 0, column = 2, padx = 5, pady = 45)
         pass
+
+    def nextTip(self,n):
+        self.counter += n
+        self.quoteLabel.configure(text = self.tips[self.counter])
+    
 
 def exitProgram(): #ends program
     app.quit()
