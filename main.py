@@ -199,7 +199,7 @@ class App(ctk.CTk):
             self.screen1 = mainScreen(self)
             self.screen1.grid(row = 0, column = 0, sticky = 'nw')
 
-        self.geometry("1200x700")
+        self.geometry("1150x600")
         self.title("AI Fake News Detection")
 
         #carry out pre=processing and vectorise data before model is trained
