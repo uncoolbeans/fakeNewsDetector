@@ -222,6 +222,8 @@ class loadingScreen(ctk.CTkFrame):
         self.loadingLabel = ctk.CTkLabel(self, 
                                          text = 'Preparing the data for training, please wait...',
                                          font = self.bigFont,
+                                         bg_color='transparent',
+                                        fg_color='transparent',
                                          corner_radius=10)
         self.columnconfigure(0,weight=1)
         self.rowconfigure(0, weight= 1)
@@ -588,6 +590,7 @@ class tipsFrame(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, corner_radius=10, width = 800, height = 150)
         self.counter = 0
+        self.bigFont = ctk.CTkFont(family='SF-Pro',size =25, weight = 'bold')
 
         self.tips = ["Apply the CRAAP Test: Currency, Relevance, Authority, Accuracy, Purpose\nto help decide if an article is telling the truth.",
                      "A quick Google search will help check if a claim made in an article is\nsupported by other sources or has been debunked.",
@@ -596,27 +599,31 @@ class tipsFrame(ctk.CTkFrame):
                      "Distinguish opinion from fact; newspapers often have opinion/op-ed/letters \nto the editor/editorials sections that are not focused on fact but rather opinion.",
                      "Just because a friend or relative sent you something does not mean its true!",
                      ]
-        
+        self.label = ctk.CTkLabel(self,text = 'Avoiding Fake News',
+                                  font = self.bigFont,
+                                  fg_color='transparent', bg_color='transparent',
+                                  )
+        self.label.place(relx = 0.02, rely = 0.15, anchor = 'w')
 
         self.quoteLabel = ctk.CTkLabel(self, text = self.tips[self.counter],
                                   fg_color=('white', 'darkgrey'), bg_color='transparent',
                                   width = 550, height = 75,
                                   corner_radius= 10
                                 )
-        self.quoteLabel.place(relx=0.5, rely=0.5, anchor='c')
+        self.quoteLabel.place(relx=0.5, rely=0.6, anchor='c')
 
 
         self.backButton = ctk.CTkButton(self, text = '<',
                                         width=20,
                                         command = lambda: self.nextTip(-1)
                                         )
-        self.backButton.place(relx = 0.05, rely = 0.5, anchor = 'c')
+        self.backButton.place(relx = 0.05, rely = 0.6, anchor = 'c')
 
         self.fwdButton = ctk.CTkButton(self, text = '>',
                                        width = 20,
                                        command= lambda: self.nextTip(1)
                                         )
-        self.fwdButton.place(relx = 0.95, rely = 0.5, anchor = 'c')
+        self.fwdButton.place(relx = 0.95, rely = 0.65, anchor = 'c')
         self.grid_propagate(0)
         self.pack_propagate(0)
     
