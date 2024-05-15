@@ -115,7 +115,7 @@ y_train = None
 
 vectorizer = None
 
-class article_info():
+class article_info(): #general use article class to store article properties such as text and verdict
     def __init__(self, text, title = '',model = '', date = '', verdict = 1):
         text = re.sub(r'\n',' ', text)
         if len(title) > 30:
@@ -144,7 +144,7 @@ class article_info():
         else:
             self.verdict = 'Fake'
 
-predictedArticles = []
+predictedArticles = [] #list to store predicted articles 
 
 class timerError(Exception):
     """timer errors"""
@@ -205,8 +205,6 @@ class App(ctk.CTk):
         #carry out pre=processing and vectorise data before model is trained
         vectoriserThread = threading.Thread(target=vectoriseData)
         vectoriserThread.start()
-
-
 
         #screen1 = mainScreen(self)
         #screen1.grid(row = 0, column = 0, sticky = 'nw')
@@ -279,7 +277,7 @@ class mainScreen(ctk.CTkFrame):
         tips.grid(row = 3, column = 0, columnspan = 2, padx = 20, pady = 10)
 
         
-class modelTabView(ctk.CTkTabview):
+class modelTabView(ctk.CTkTabview): #overall tabview frame containing the control panel for using the AI
     def __init__(self,master):
         super().__init__(master, width = 600)
 
@@ -305,7 +303,7 @@ class modelTabView(ctk.CTkTabview):
         frame3.grid(row = 0, column = 0, sticky = 'nw')
 
 
-class modelFrame(ctk.CTkFrame):
+class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
     def __init__(self, master, tabNo):
         super().__init__(master, fg_color='transparent')
         self.article = None
@@ -320,7 +318,7 @@ class modelFrame(ctk.CTkFrame):
             self.modelName =  'Naive Bayes Classifier'
             self.model = Model(MultinomialNB())
 
-        def trainSelectedModel(x,y,model,tabNo):
+        def trainSelectedModel(x,y,model,tabNo): #train the selected model
 
             self.modelStatusLabel.configure(text = 'Training model, please wait...')
             self.trainModelButton.configure(state = 'disabled')
@@ -359,7 +357,7 @@ class modelFrame(ctk.CTkFrame):
 
             try:
                 self.article.download()
-                self.article.parse()
+                self.article.parse() 
             except newspaper.article.ArticleException:
                 CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox.', icon='cancel' )
                 return
@@ -368,29 +366,39 @@ class modelFrame(ctk.CTkFrame):
             text = self.article.text
 
             if text.strip() == '':
-                CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox. Please ensure it is a news article.', icon='cancel' )
+                CTkMessagebox(title = 'Error', 
+                              message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox. Please ensure it is a news article.', icon='cancel' )
+                return
 
             #clear textbox of text
             self.textbox.delete(0.0,'end')
             #add scraped text to textbox
             self.textbox.insert(0.0, text)
 
+
             done = CTkMessagebox(title = 'Text extracted', message = 'Successfully scraped news article for body text. Click "get prediction" to run the text through the model.', icon = 'check')
             return 
 
-        def predict():
+        def predict(): #get prediction from the AI model
             global predictions
             global vectorizer
             global predictedArticles
 
-            text = {'text': [self.textbox.get(0.0,'end')]}
-            test = pd.DataFrame(text)
-
+            #getting text from the textbox
+            if self.textbox.get(0.0,'end') != '' and self.textbox.get(0.0,'end') == 'Paste body text of article here. (delete this text when pasting)':
+                text = {'text': [self.textbox.get(0.0,'end')]}
+                test = pd.DataFrame(text)
+            else: 
+                CTkMessagebox(title = 'Error', message= 'Please ensure that the textbox contains text from a news article in order to get a prediction!', icon = 'cancel')
+                return
+            
+            #preprocess and vectorise article text
             test['text'] = test['text'].apply(preProcess)
             processedText = test['text']
 
             vectorisedText = vectorizer.transform(processedText)
 
+            #get prediction from model
             prediction = self.model.predict(vectorisedText)
 
             print(prediction)
@@ -407,24 +415,21 @@ class modelFrame(ctk.CTkFrame):
                               message=f'{self.modelName} predicts that the article contains REAL news.',
                               icon='check')
 
-            if self.article is not None:
+            if self.article is not None: #check if the predicted article is from an URL
                 msg = CTkMessagebox(title = 'URL Detected', 
                                     message=f'You have recently scraped an URL, do you want to use the following information obtained from the URL?\nTitle: {self.article.title}\nDate: {self.article.publish_date}',
                                     icon = 'question',
                                     option_1='Yes',
                                     option_2='No')
+                #adding to predicted outcomes list and updating the display
                 if msg.get() == 'Yes':
                     predictedArticles.insert(0,article_info(self.article.text, self.article.title, self.modelName, self.article.publish_date, verdict=prediction))
                     predictions.draw()
                 else:
                     predictedArticles.insert(0,article_info(self.article.text, model = self.modelName, verdict = prediction))
                     predictions.draw()
-
-            
             return
         
-                
-
         self.normalFont = ctk.CTkFont(family='SF-Pro',size = 15)
         self.semiBold = ctk.CTkFont(family='SF-Pro', size = 22, weight='bold')
 
@@ -477,16 +482,17 @@ class modelFrame(ctk.CTkFrame):
                                            command = lambda: predict(),
                                            state='disabled'
                                            )
-        self.predictButton.grid(row = 2, column = 1, columnspan = 2)
+        self.predictButton.grid(row = 2, column = 1, columnspan = 2, padx = 5, pady = 10)
 
         
 
-class Model():
+class Model(): #class container for AI models to store their attributes
     def __init__(self, model):
         self.model = model
+        #dictionary storing all the model metrics
         self.metrics = {'Accuracy': 0, 'Precision': 0, 'Recall': 0, 'F1 Score': 0}
 
-    def trainModel(self,x,y):
+    def trainModel(self,x,y): #fitting model, called when training model
 
         print(f'training')
 
@@ -512,16 +518,17 @@ class Model():
         self.trainingTime = t.elapsed_time
         print(self.trainingTime)
 
-    def predict(self,vectorisedText):
+    def predict(self,vectorisedText): #predict outcome given VECTORISED text
 
         prediction = self.model.predict(vectorisedText)
 
         return prediction[0]
 
-class predictionsFrame(ctk.CTkScrollableFrame):
+class predictionsFrame(ctk.CTkScrollableFrame): #scrollable frame displaying all the predicted articles
     def __init__(self, master):
         super().__init__(master, width = 365, height = 500)
         self.bigFont = ctk.CTkFont(family='SF-Pro',size =13, weight = 'bold')
+        self.hasBeenDrawn = False
         self.draw()
 
     def draw(self):
@@ -534,6 +541,9 @@ class predictionsFrame(ctk.CTkScrollableFrame):
                                      )
                 self.label.grid(row = 0, column = 0)
                 return
+        elif self.hasBeenDrawn:
+            self.frame.destroy()
+        
 
         for i,article in enumerate(predictedArticles):
             self.frame = ctk.CTkFrame(self,
@@ -611,7 +621,6 @@ class tipsFrame(ctk.CTkFrame):
                                   corner_radius= 10
                                 )
         self.quoteLabel.place(relx=0.5, rely=0.6, anchor='c')
-
 
         self.backButton = ctk.CTkButton(self, text = '<',
                                         width=20,
