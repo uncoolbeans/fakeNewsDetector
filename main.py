@@ -180,6 +180,9 @@ class App(ctk.CTk):
         def vectoriseData():
             global vectorizer
 
+            barThread = threading.Thread(target=self.loadScreen.loadingBar.start())
+            barThread.start()
+
             print('vectorising data')
             global xvTrain, xvTest, y_test, y_train
 
@@ -193,6 +196,8 @@ class App(ctk.CTk):
             vectorizer = TfidfVectorizer(stop_words='english')
             xvTrain = vectorizer.fit_transform(x_train)
             xvTest = vectorizer.transform(x_test)
+
+            barThread.join()
 
             self.loadScreen.after(10, self.loadScreen.destroy())
 
@@ -227,7 +232,12 @@ class loadingScreen(ctk.CTkFrame):
         self.rowconfigure(0, weight= 1)
 
         self.loadingLabel.grid(row = 0, column = 0, padx = 0, pady = 0)
-        
+
+        self.otherlabel = ctk.CTkLabel(self, text = 'This should only take 2 minutes at maximum. Please restart the program if it does not load within 2 minutes.\nThis process may be processing-heavy, which can cause some freezing.')
+        self.otherlabel.grid(row= 1, column = 0, padx = 5, pady = 5)
+
+        self.loadingBar = ctk.CTkProgressBar(self, mode = 'indeterminate', indeterminate_speed=1)
+        self.loadingBar.grid(row= 2, column = 0, padx = 5, pady = 5)
 
 class mainScreen(ctk.CTkFrame):
     def __init__(self,master):
@@ -385,7 +395,7 @@ class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
             global predictedArticles
 
             #getting text from the textbox
-            if self.textbox.get(0.0,'end') != '' and self.textbox.get(0.0,'end') == 'Paste body text of article here. (delete this text when pasting)':
+            if self.textbox.get(0.0,'end') != '' and self.textbox.get(0.0,'end') != 'Paste body text of article here. (delete this text when pasting)':
                 text = {'text': [self.textbox.get(0.0,'end')]}
                 test = pd.DataFrame(text)
             else: 
