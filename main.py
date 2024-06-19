@@ -177,11 +177,11 @@ class App(ctk.CTk):
         self.loadScreen = loadingScreen(self)
         self.loadScreen.grid(row = 0, column = 0)
 
+        self.barThread = threading.Thread(target=self.loadScreen.loadingBar.start())
+        self.barThread.start()
+
         def vectoriseData():
             global vectorizer
-
-            barThread = threading.Thread(target=self.loadScreen.loadingBar.start())
-            barThread.start()
 
             print('vectorising data')
             global xvTrain, xvTest, y_test, y_train
@@ -197,7 +197,7 @@ class App(ctk.CTk):
             xvTrain = vectorizer.fit_transform(x_train)
             xvTest = vectorizer.transform(x_test)
 
-            barThread.join()
+            self.barThread.join()
 
             self.loadScreen.after(10, self.loadScreen.destroy())
 
