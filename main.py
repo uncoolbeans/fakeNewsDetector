@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import re
+import sys
+import os
 
 from sklearn.model_selection import train_test_split
 
@@ -18,19 +20,34 @@ from sklearn.naive_bayes import MultinomialNB
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-
 import newspaper
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
+from tkinter import messagebox
 from newspaper import Article
+import io
 from newspaper import Config
 import threading
 import pyglet
 import time
+import requests
 
-pyglet.font.add_file('SF-Pro.ttf')
-pyglet.font.add_file('SF-Pro-Text-Heavy.otf')
-pyglet.font.add_file('SF-Pro-Rounded-Heavy.otf')
+config = Config()
+config.memoize_articles = False
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+pyglet.font.add_file(resource_path('SF-Pro.ttf'))
+pyglet.font.add_file(resource_path('SF-Pro-Text-Heavy.otf'))
+pyglet.font.add_file(resource_path('SF-Pro-Rounded-Heavy.otf'))
 
 
 #nltk.download('stopwords')
@@ -44,8 +61,8 @@ pyglet.font.add_file('SF-Pro-Rounded-Heavy.otf')
 #stemmer = PorterStemmer()
 #lemmatizer = WordNetLemmatizer()
 
-true = pd.read_csv('True.csv')
-fake = pd.read_csv('Fake.csv')
+true = pd.read_csv(resource_path('Data/True.csv'))
+fake = pd.read_csv(resource_path('Data/Fake.csv'))
 
 true['label'] = 1
 fake['label'] = 0
@@ -312,6 +329,31 @@ class modelTabView(ctk.CTkTabview): #overall tabview frame containing the contro
         frame3 = modelFrame(self.tab('Model 3'),3)
         frame3.grid(row = 0, column = 0, sticky = 'nw')
 
+class localArticle(Article):
+    def __init__(self, url, **kwargs):
+        # set url to be file_name in __init__ if it's a file handle
+        super().__init__(url if isinstance(url, str) else url.name, **kwargs)
+        # set standalone _url attr so that parse will work as expected
+        self._url = url
+
+    def parse(self):
+
+        # sets html and things for you
+        if isinstance(self._url, str):
+            with open(self._url, 'rb') as fh:
+                self.html = fh.read()
+
+        elif isinstance(self._url, (io.TextIOWrapper, io.BufferedReader)):
+            self.html = self._url.read()
+
+        else:
+            raise TypeError(f"Expected file path or file-like object, got {self._url.__class__}")
+
+        self.download_state = 2
+        # now parse will continue on with the proper params set
+        super(localArticle, self).parse()
+
+
 
 class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
     def __init__(self, master, tabNo):
@@ -356,6 +398,7 @@ class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
             return
 
         def scrape(link): #extracts body text from a news article URL
+
             url = link
             url = url.strip()
 
@@ -364,18 +407,28 @@ class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
                 msg = CTkMessagebox(title="Error", message="URL box must not be empty if you wish to use an URL!", icon="cancel")
                 return
             self.article = Article(url)
-
-            try:
-                self.article.download()
-                self.article.parse() 
-            except newspaper.article.ArticleException:
-                CTkMessagebox(title = 'Error', message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox.', icon='cancel' )
-                return
             
             #extracting text from article
-            text = self.article.text
+            r = requests.get(url)
+            with open(resource_path('article.html'), 'wb') as fh:
+                fh.write(r.content)
 
-            if text.strip() == '':
+            a = Article(url,config= config, keep_article_html =False)
+
+            with open(resource_path("article.html"), 'rb') as fh:
+                a.html = fh.read()
+
+            a.download_state = 2
+
+            a.parse()
+
+            self.text = a.text
+            self.title = a.title
+            self.date = a.publish_date
+
+
+
+            if self.text.strip() == '':
                 CTkMessagebox(title = 'Error', 
                               message = 'Unable to extract text from link. Please try a new link or copy paste text directly into the textbox. Please ensure it is a news article.', icon='cancel' )
                 return
@@ -383,7 +436,10 @@ class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
             #clear textbox of text
             self.textbox.delete(0.0,'end')
             #add scraped text to textbox
-            self.textbox.insert(0.0, text)
+            self.textbox.insert(0.0, self.text)
+
+            open(resource_path("article.html"), "w").close()
+
 
 
             done = CTkMessagebox(title = 'Text extracted', message = 'Successfully scraped news article for body text. Click "get prediction" to run the text through the model.', icon = 'check')
@@ -427,13 +483,13 @@ class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
 
             if self.article is not None: #check if the predicted article is from an URL
                 msg = CTkMessagebox(title = 'URL Detected', 
-                                    message=f'You have recently scraped an URL, do you want to use the following information obtained from the URL?\nTitle: {self.article.title}\nDate: {self.article.publish_date}',
+                                    message=f'You have recently scraped an URL, do you want to use the following information obtained from the URL?\nTitle: {self.title}\nDate: {self.date}',
                                     icon = 'question',
                                     option_1='Yes',
                                     option_2='No')
                 #adding to predicted outcomes list and updating the display
                 if msg.get() == 'Yes':
-                    predictedArticles.insert(0,article_info(self.article.text, self.article.title, self.modelName, self.article.publish_date, verdict=prediction))
+                    predictedArticles.insert(0,article_info(self.text, self.title, self.modelName, self.date, verdict=prediction))
                     predictions.draw()
                 else:
                     predictedArticles.insert(0,article_info(self.article.text, model = self.modelName, verdict = prediction))
