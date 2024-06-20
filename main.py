@@ -382,18 +382,26 @@ class modelFrame(ctk.CTkFrame): #model containing all the controls for the AI
             self.modelStatusLabel.after(10,self.modelStatusLabel.destroy())
             i = 1
             for metric in model.metrics:
+                percentage = f'{round(model.metrics[metric]*100,2)}%'
                 self.metricLabel = ctk.CTkLabel(self.metricsFrame,
-                                        text = f'{metric}: {model.metrics[metric]}',
+                                        text = f'{metric}: {percentage}',
                                         fg_color= 'lightgray',
                                         corner_radius=5,
                                         height = 35,
                                         width = 250,
                                         justify = 'left',
                                         anchor = 'w'
-                                
                                         )
-                self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 5)
-                i+=1
+                self.metricLabel.grid(column = 0, row = i, padx = 5, sticky = 'w', pady = 0)
+                self.bar = ctk.CTkProgressBar(self.metricsFrame,
+                                         mode = 'determinate',
+                                         determinate_speed=1)
+                self.bar.set(model.metrics[metric])
+                self.bar.grid(column = 0, row = i+1, padx = 5, sticky = 'w')
+                
+
+
+                i+=2
             self.predictButton.configure(state = 'enabled')
             return
 
